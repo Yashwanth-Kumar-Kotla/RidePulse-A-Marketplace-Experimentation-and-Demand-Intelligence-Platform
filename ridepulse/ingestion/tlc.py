@@ -54,6 +54,17 @@ EXPECTED_SCHEMA = {
 NOT_NULL_COLUMNS = ["hvfhs_license_num", "pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID"]
 
 
+# request_datetime appears coarsened to the nearest 15 minutes for a subset
+# of trips (~7% of all rows land exactly on a quarter-hour vs. an expected
+# ~1/15, and that share jumps to ~51% among request>pickup violations) --
+# most likely privacy-related timestamp bucketing on lower-volume dispatching
+# bases. This produces request_datetime > pickup_datetime for ~1% of rows.
+# It's a known, quantified TLC data quirk (see docs/data_quality_notes.md),
+# not corruption, so it's a WARN below this rate, not a hard ingestion FAIL.
+TIMESTAMP_VIOLATION_WARN_THRESHOLD = 0.02
+DUPLICATE_WARN_THRESHOLD = 0.001
+
+
 @dataclass
 class ValidationResult:
     month: str
@@ -65,12 +76,27 @@ class ValidationResult:
     duplicate_rows: int
 
     @property
+    def timestamp_violation_rate(self) -> float:
+        return self.timestamp_order_violations / self.row_count if self.row_count else 0.0
+
+    @property
+    def duplicate_rate(self) -> float:
+        return self.duplicate_rows / self.row_count if self.row_count else 0.0
+
+    @property
     def ok(self) -> bool:
+        """Hard-fail gate: schema drift or nulls in required columns block ingestion.
+
+        Timestamp-order and duplicate issues below their warn thresholds are
+        known, bounded data quirks -- flagged, filtered at the staging layer,
+        but not a reason to block the whole pull.
+        """
         return (
             self.schema_ok
             and self.row_count > 0
             and not self.null_violations
-            and self.timestamp_order_violations == 0
+            and self.timestamp_violation_rate <= TIMESTAMP_VIOLATION_WARN_THRESHOLD
+            and self.duplicate_rate <= DUPLICATE_WARN_THRESHOLD
         )
 
 
