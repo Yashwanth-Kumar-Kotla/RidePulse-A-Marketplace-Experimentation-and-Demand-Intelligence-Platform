@@ -125,8 +125,7 @@ def download_month(month: str, force: bool = False) -> Path:
         resp.raise_for_status()
         tmp = dest.with_suffix(".parquet.part")
         with open(tmp, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=1 << 20):
-                f.write(chunk)
+            f.writelines(resp.iter_content(chunk_size=1 << 20))
         tmp.rename(dest)
     logger.info("downloaded tlc %s -> %s (%.1f MB)", month, dest, dest.stat().st_size / 1e6)
     return dest

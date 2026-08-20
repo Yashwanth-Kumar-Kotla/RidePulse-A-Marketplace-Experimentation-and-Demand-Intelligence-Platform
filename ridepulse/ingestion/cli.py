@@ -33,7 +33,7 @@ def cmd_pull(args: argparse.Namespace) -> None:
     for month in months:
         tlc.download_month(month, force=args.force)
 
-    start, end = f"{months[0]}-01", f"{sorted(months)[-1]}-28"
+    start, end = f"{months[0]}-01", f"{max(months)}-28"
     noaa.download_weather(start, end, force=args.force)
     zones.download_zone_lookup(force=args.force)
     logger.info("pull complete")
