@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.python-version
+
+# raw downloaded data and the warehouse itself -- never committed (PRD Section 4)
+data/raw/
+data/*.duckdb
+data/*.duckdb.wal
+
+.DS_Store
+.env
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

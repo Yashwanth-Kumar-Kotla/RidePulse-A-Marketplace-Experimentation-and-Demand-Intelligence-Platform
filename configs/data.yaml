@@ -1,0 +1,71 @@
+# Data window for this build.
+#
+# The PRD (Section 6) specifies 2023-2025 (~150-250M rows/year, <100GB parquet).
+# Full 3-year pull is deferred: at realistic download speeds a single HVFHS
+# month is often 400-900MB compressed, and TLC's server throttles hard on
+# concurrent/rapid requests. Pulling 36 months serially is a multi-hour
+# network operation, independent of how fast the code runs.
+#
+# Strategy: start with `pilot_months` to get every layer (ingestion -> staging
+# -> marts -> metrics -> forecasting) working end to end on real data fast.
+# Then widen `full_months` and re-run the same ingestion CLI to backfill.
+# Document in the README which window backs which reported number.
+
+tlc:
+  # TLC publishes ONE combined monthly file (fhvhv_tripdata_YYYY-MM.parquet)
+  # covering all high-volume FHV bases, distinguished by hvfhs_license_num:
+  # HV0002=Juno, HV0003=Uber, HV0004=Via, HV0005=Lyft. Filter at query time,
+  # not by URL. Verified live against fhvhv_tripdata_2024-01.parquet
+  # (24 columns, 19.66M rows, ~473MB) on 2026-08-20.
+  base_url: "https://d37ci6vzurychx.cloudfront.net/trip-data"
+  file_prefix: "fhvhv_tripdata"
+  licenses_of_interest: ["HV0003", "HV0005"] # Uber, Lyft
+  # Pilot: 3 months, one from each of low/medium/high demand season, all in 2024
+  # so they fall inside the congestion-pricing DiD window (zone starts 2025-01-05,
+  # so 2024 months are all clean pre-period).
+  pilot_months: ["2024-01", "2024-06", "2024-09"]
+  # Widen this list to backfill toward the full 2023-2025 window if time allows.
+  full_months:
+    - "2023-01"
+    - "2023-02"
+    - "2023-03"
+    - "2023-04"
+    - "2023-05"
+    - "2023-06"
+    - "2023-07"
+    - "2023-08"
+    - "2023-09"
+    - "2023-10"
+    - "2023-11"
+    - "2023-12"
+    - "2024-01"
+    - "2024-02"
+    - "2024-03"
+    - "2024-04"
+    - "2024-05"
+    - "2024-06"
+    - "2024-07"
+    - "2024-08"
+    - "2024-09"
+    - "2024-10"
+    - "2024-11"
+    - "2024-12"
+    - "2025-01"
+    - "2025-02"
+    - "2025-03"
+    - "2025-04"
+    - "2025-05"
+    - "2025-06"
+
+taxi_zones:
+  shapefile_url: "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zones.zip"
+  lookup_csv_url: "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
+
+noaa:
+  # NYC Central Park GHCN daily station - long, clean, well-maintained record.
+  station_id: "GHCND:USW00094728"
+  dataset: "GHCND"
+
+paths:
+  raw_dir: "data/raw"
+  duckdb_path: "data/ridepulse.duckdb"
