@@ -20,9 +20,12 @@ st.set_page_config(page_title="RidePulse Experiment Readout", layout="wide")
 
 st.title("RidePulse: Marketplace Experimentation Readout")
 st.caption(
-    "Real NYC TLC HVFHS data, 3-month pilot window (Jan/Jun/Sep 2024, ~59M trips). "
-    "Every number below is measured, not assumed -- each section names the docs/*.md file "
-    "with the full methodology (open it directly in the repo, this page doesn't serve it)."
+    "Real NYC TLC HVFHS data. Warehouse and forecasting run on the full 2023-2025 "
+    "window (593M trips); the simulator and the three flagship experiments below "
+    "still run on an earlier 3-month pilot subset (Jan/Jun/Sep 2024, ~59M trips) -- "
+    "see README.md's Data Window section for why. Every number below is measured, not "
+    "assumed -- each section names the docs/*.md file with the full methodology "
+    "(open it directly in the repo, this page doesn't serve it)."
 )
 
 st.divider()
@@ -101,10 +104,10 @@ st.header("Supporting layers -- and their honest limits")
 
 col1, col2 = st.columns(2)
 with col1:
-    st.subheader("Forecasting")
-    st.metric("Seasonal-naive baseline (12-fold WAPE)", "15.2%")
-    st.metric("LightGBM", "12.3%", delta="beats naive on 10/12 folds, ties 1, loses 1", delta_color="off")
-    st.caption("Reported precisely, not rounded up to 'always wins.'")
+    st.subheader("Forecasting (full 2023-2025 window, 120 folds)")
+    st.metric("Seasonal-naive baseline", "18.2% WAPE")
+    st.metric("LightGBM", "12.4% WAPE", delta="beats naive on all 120/120 folds", delta_color="off")
+    st.caption("An earlier 3-month/12-fold run scored 15.2%/12.3% -- superseded by this full-window result.")
 
 with col2:
     st.subheader("Simulator calibration")
@@ -122,6 +125,7 @@ with col2:
 
 st.divider()
 st.caption(
-    "Full build log, including two real bugs found and fixed via checking real output "
-    "rather than trusting code: docs/overnight_log.md. Full requirements: PRD.md."
+    "Every result on this page was checked against real output, not assumed to work "
+    "from code review alone -- see docs/metrics_definitions.md for the full KPI catalogue "
+    "and each section's linked doc above for that result's detailed methodology."
 )
