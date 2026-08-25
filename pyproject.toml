@@ -16,6 +16,7 @@ dependencies = [
     "lightgbm>=4.7.0",
     "mlflow>=3.15.1",
     "matplotlib>=3.11.1",
+    "pulp>=3.3.2",
 ]
 
 [dependency-groups]
