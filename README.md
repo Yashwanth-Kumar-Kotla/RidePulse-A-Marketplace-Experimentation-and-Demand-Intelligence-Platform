@@ -152,12 +152,13 @@ dropped or ignored. Full findings: [`docs/data_quality_notes.md`](docs/data_qual
 
 ## Metrics
 
-12 PRD KPIs: 5 have working SQL views (trip volume, wait time, driver
-earnings, tip rate, shared-ride/airport share), the rest are explicitly
-scoped as open problems rather than silently dropped — in particular,
-**fulfillment rate has no definition** because HVFHS data has no
-request-level denominator (no cancellation records), and inventing a proxy
-without saying so would violate this project's own anti-fabrication rule.
+12 PRD KPIs: 7 have working SQL views (trip volume, wait time, driver
+earnings, tip rate, shared-ride/airport share, surge proxy, week-over-week
+anomaly detection), the rest are explicitly scoped as open problems rather
+than silently dropped — in particular, **fulfillment rate has no
+definition** because HVFHS data has no request-level denominator (no
+cancellation records), and inventing a proxy without saying so would
+violate this project's own anti-fabrication rule.
 Full KPI-by-KPI status: [`docs/metrics_definitions.md`](docs/metrics_definitions.md).
 
 ## Forecasting
