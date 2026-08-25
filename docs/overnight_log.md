@@ -54,3 +54,30 @@ cumulative distribution to read off p50/p90 -- see
 
 Committed as "Fix wait-time percentile OOM with a bucketed histogram
 approach" once pushed.
+
+### Milestone: seasonal-naive forecasting baseline + backtest harness (23:57)
+
+Built `ridepulse/forecasting/`: `data.py` (dense zone-hour demand panel,
+platform-summed, zero-filled -- checked directly that only ~93.7% of
+theoretical zone-hour-platform cells have a row in the mart, so the missing
+~6.3% are real zero-demand cells that must be filled, not left as gaps),
+`baseline.py` (seasonal-naive: predict = same hour 7 days prior), and
+`backtest.py` (12-fold rolling-origin: 4 folds/month x 3 pilot months, since
+the months are non-contiguous and can't form one continuous rolling window --
+documented in the module docstring).
+
+**Result (real, measured, not fabricated): pooled WAPE = 15.2% across all 12
+folds** (per-fold range 11.7%-19.7%; September is the worst month, June
+second-worst -- plausibly more schedule variability in summer than the
+seasonal-naive model's fixed 7-day-lag assumption captures, not yet
+investigated further). This is the number to beat with a real model next.
+
+Verified: 4 unit tests covering the correctness-critical logic (the 7-day
+lag doesn't leak across the Jan/Jun gap -- this was the one genuine
+correctness risk in this design, tested directly; WAPE formula matches a
+hand-computed example; fold counts are right). All 11 repo tests + ruff
+pass. Committed as "Add seasonal-naive forecasting baseline and 12-fold
+backtest harness" once pushed.
+
+Next: one real model (LightGBM) against this same harness, honestly
+reported whether it beats 15.2% WAPE or not.
