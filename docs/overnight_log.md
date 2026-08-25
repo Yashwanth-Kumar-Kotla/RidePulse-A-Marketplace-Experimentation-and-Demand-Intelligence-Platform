@@ -666,3 +666,40 @@ full-window (authoritative) and pilot-window (superseded) numbers side by
 side, limitations/future-work sections rewritten to match current reality
 rather than left stale. All internal doc/image links re-verified to
 resolve. 55 tests passing throughout every step of this phase.
+
+### Milestone: Docker fixed -- both the environment and a real image bug
+
+Root-caused the local Docker hang instead of retrying blindly: Docker
+Desktop's own logs (`~/Library/Containers/com.docker.docker/Data/log/host/monitor.log`)
+showed the host repeatedly failing to reach its own VM at `192.168.65.7:2376`
+with `no route to host` -- confirmed with `netstat -rn` that no route to
+that subnet existed on the host at all. Traced to `com.docker.vmnetd`, the
+privileged system helper that sets up host-to-VM networking, which had
+been running continuously since 5Aug26 (3 weeks) -- a Docker Desktop app
+restart doesn't touch it since it's a separate system daemon, so its
+stale internal routing state survived every earlier restart attempt.
+Fixing it needed `sudo launchctl kickstart -k system/com.docker.vmnetd`,
+which needs a password only the user has -- asked them to run it rather
+than guess further or claim a fix without one. Verified immediately after:
+`netstat`/`docker pull hello-world` both confirmed the route was back.
+
+**Building the actual image then surfaced a real, separate bug**, caught
+by actually running the container rather than stopping at "it built":
+`OSError: libgomp.so.1: cannot open shared object file` -- LightGBM's
+native library needs the OpenMP runtime, which `python:3.12-slim` doesn't
+include by default (a known gotcha with minimal Debian base images).
+Fixed by installing `libgomp1` via apt in the Dockerfile.
+
+**Verified end to end after the fix**, not just "container started":
+built the image, ran it with the real 29.7GB warehouse mounted as a
+volume, and hit `/health`, `/forecast/106`, `/forecast/79`, and
+`/experiments/decision-layer` through the actual published port --
+all returned real, correct data (e.g. zone 79 predicted 294.2 trips/hr,
+zone 106 predicted 46.6, both plausible given each zone's known scale).
+Also caught and fixed a small stale-copy issue while verifying: the
+forecast response's `note` field still said "pilot-window features" even
+though it's now serving from the full warehouse.
+
+README's Docker limitation note updated from "unverified" to confirmed
+working, consistent with everything else that's actually been checked
+tonight rather than assumed. Final image: 1.41GB.

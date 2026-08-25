@@ -4,6 +4,14 @@
 # with `make warehouse` before running this container.
 FROM python:3.12-slim
 
+# libgomp1 (OpenMP runtime) is required by LightGBM's native library and is
+# NOT included in python:3.12-slim by default -- found by actually running
+# the built container, not assumed: it failed at import time with
+# "OSError: libgomp.so.1: cannot open shared object file: No such file or
+# directory", a known gotcha with minimal Debian base images.
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir uv
 
 WORKDIR /app

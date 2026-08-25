@@ -51,7 +51,7 @@ class ForecastResponse(BaseModel):
     as_of: str
     predicted_trips_next_hour: float
     model_backtest_wape: float = 0.123  # LightGBM's measured pooled WAPE, see docs/overnight_log.md
-    note: str = "Prediction uses this zone's most recent available pilot-window features, not live data."
+    note: str = "Prediction uses this zone's most recent available warehouse features, not live data."
 
 
 @app.get("/health")

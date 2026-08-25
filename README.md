@@ -264,14 +264,11 @@ The decision layer, above.
 - **Tableau Public dashboard not published.** GUI-only publish flow with no
   API — out of scope for an automated build; the KPI views exist and are
   ready to visualize.
-- **FastAPI and Streamlit run locally, not deployed publicly.** Both are
-  built and verified running (`make api`, `make dashboard`); neither has
-  a live public URL yet.
-- **`docker/Dockerfile` is written but not verified to build.** Local
-  Docker Desktop was unresponsive for an extended period during this
-  build (confirmed it wasn't a network issue: `curl` reached Docker Hub
-  fine while `docker pull`/`docker build` hung) -- rather than claim it
-  works without checking, it's stated here as genuinely unverified.
+- **FastAPI, Streamlit, and the Docker image all run locally, not deployed
+  publicly.** All three are built and verified running (`make api`,
+  `make dashboard`, `make docker-build && make docker-run` — the container
+  was confirmed serving real predictions and experiment readouts against
+  the mounted warehouse); none has a live public URL yet.
 
 ## Future work
 
