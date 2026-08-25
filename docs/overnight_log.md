@@ -228,3 +228,32 @@ real data -- partial match, systematic wait overestimation" once pushed.
 
 Next: experimentation engine, starting with power/MDE and fixed-horizon
 A/B, building toward the interference/switchback flagship result.
+
+### Milestone: power/MDE calculator + fixed-horizon A/B with SRM check (00:31)
+
+Built `ridepulse/experiments/power.py` (standard textbook sample-size
+formulas for proportions and means, cited not reinvented) and
+`ab_test.py` (Welch's t-test -- unequal-variance default, doesn't assume
+control/treatment have the same spread -- plus a Welch-Satterthwaite 95%
+CI, and a chi-square sample-ratio-mismatch check at a strict p<0.001
+threshold, standard practice since SRM tests have enough power to flag
+tiny benign imbalances at large N).
+
+**The one that actually matters most here (PRD Section 7.5 point 6):**
+verified the A/B pipeline's false-positive rate under a null simulation
+(no true effect, 2000 reps, alpha=0.05) lands inside a 99.9% binomial CI
+around 0.05 -- i.e. the test is correctly calibrated, not silently
+miscalibrated in a way that would invalidate every experiment result built
+on top of it later tonight. Used a CI rather than a tight hardcoded bound
+specifically so the test doesn't flake on normal sampling variance.
+
+6 new tests total (power monotonicity in both directions, AB test recovers
+a known synthetic effect, SRM correctly flags a broken allocation and
+correctly clears a balanced one, plus the null false-positive-rate check).
+All 29 repo tests + ruff pass. Committed as "Add power/MDE calculator and
+fixed-horizon A/B test with SRM check" once pushed.
+
+Next: the interference study -- naive rider-randomized A/B vs. switchback
+on the same simulated driver-incentive intervention, bias measured against
+known simulator ground truth. The single most important deliverable in
+the project (PRD Section 11 #1).
