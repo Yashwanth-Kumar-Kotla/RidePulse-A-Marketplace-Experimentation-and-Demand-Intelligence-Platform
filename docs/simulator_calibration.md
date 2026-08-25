@@ -83,7 +83,7 @@ error direction observed here: the simulator, unable to draw on outside
 supply, predicts more strain (higher wait) than the real -- more elastic --
 system actually shows. This is a hypothesis consistent with the evidence,
 not independently confirmed; confirming it would mean building the
-cross-zone flow model, which is out of scope tonight.
+cross-zone flow model, which is out of scope for this build.
 
 Also worth noting: `utilization` > 1.0 in both zones (1.13), which
 `engine.py`'s own docstring already flags as a real boundary effect (a trip

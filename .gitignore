@@ -18,3 +18,9 @@ mlartifacts/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Private planning notes -- career-strategy framing and a raw development
+# session log, useful for the author's own reference but not meant for an
+# external/recruiter audience browsing the repo. Kept locally, not tracked.
+PRD.md
+docs/development_log.md

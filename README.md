@@ -6,9 +6,10 @@ demand forecasting with rolling-origin backtests, a calibrated discrete-event
 marketplace simulator, an experimentation engine that quantifies A/B testing
 bias under interference, and a budget-constrained incentive optimizer.
 
-Full requirements and rationale: [`PRD.md`](PRD.md). Full build log,
-including several real bugs found and fixed along the way (not just
-successes): [`docs/overnight_log.md`](docs/overnight_log.md).
+Layer-by-layer documentation, including several real bugs found and fixed
+along the way, is in `docs/` — start with the three results below, then
+[`docs/metrics_definitions.md`](docs/metrics_definitions.md) for the full
+KPI catalogue.
 
 **Read this before trusting any number below**: the warehouse, metrics, and
 forecasting layers run on the **full 2023-2025 window** (592,951,618 real
@@ -302,5 +303,5 @@ below that and spill to `data/duckdb_tmp/` rather than exhausting
 system memory outright, but a machine already under heavy memory pressure
 from other processes can still starve it. If `make warehouse` gets killed
 (exit 137), check what else is running before assuming the query itself is
-the problem — that happened once tonight and the real cause was a
-completely unrelated background job, not the SQL.
+the problem — this happened once during development and the real cause
+was a completely unrelated background job, not the SQL.

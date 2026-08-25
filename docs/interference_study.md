@@ -1,8 +1,7 @@
 # Interference Study
 
 PRD Section 11 #1: the single highest-value artifact in this project. If
-scope had to be cut anywhere else tonight, this was the one result to
-protect.
+scope had to be cut anywhere else, this was the one result to protect.
 
 ## Question
 

@@ -80,8 +80,15 @@ beats greedy at $300 (+5.1%), ties exactly at $500 and $900 (no room left
 for a smarter trade-off at those specific budget levels), and beats it at
 $600 (+7.6%) and $700 (+4-8%, some run-to-run noise at ~150-200 reps).
 Reported $700 as the headline because it shows a clear, real gap without
-being a maximum-margin cherry-pick -- the full sweep is in
-`docs/overnight_log.md`.
+being a maximum-margin cherry-pick -- the full sweep:
+
+| Budget | Optimizer | Greedy | Margin |
+|---|---|---|---|
+| $300 | 12.50 | 11.89 | +5.1% |
+| $500 | 19.44 | 19.44 | tie |
+| $600 | 24.14 | 22.43 | +7.6% |
+| $700 | 27.39 | 25.84 | +6.0% |
+| $900 | 34.33 | 34.33 | tie |
 
 ## Correctness: the optimizer is verified against brute force, not just trusted
 
