@@ -1,4 +1,4 @@
-.PHONY: setup pull-pilot pull-full validate-pilot validate-full warehouse test
+.PHONY: setup pull-pilot pull-full validate-pilot validate-full warehouse test dashboard
 
 setup:
 	uv sync
@@ -20,3 +20,6 @@ warehouse:
 
 test:
 	uv run pytest -q
+
+dashboard:
+	uv run streamlit run dashboard/app.py

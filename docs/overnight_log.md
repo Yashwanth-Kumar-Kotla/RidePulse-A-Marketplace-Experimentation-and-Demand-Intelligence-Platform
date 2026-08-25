@@ -458,3 +458,83 @@ Committed as "Rewrite README with real measured numbers and resume-ready
 bullets" once pushed.
 
 Next: Streamlit readout app.
+
+### Milestone: Streamlit experiment readout page, verified running (01:29)
+
+Built `dashboard/app.py`: one page (PRD Section 7.8 explicitly wants
+productionization "deliberately light" -- no auth, no multi-page nav)
+displaying the three flagship results (interference bias chart, CUPED
+numbers, decision-layer chart) plus the forecasting backtest and simulator
+calibration honesty note, so a reviewer gets the full real story --
+caveats included -- in one place. Displays already-computed results from
+tonight's docs/*.md rather than re-running simulations on page load
+(explicit design choice, stated in the module docstring: single source of
+truth is the docs, this page mirrors them).
+
+**Caught one real issue before it shipped**: the first draft used
+Markdown links like `[Full methodology](docs/interference_study.md)`,
+which look clickable but wouldn't actually work -- Streamlit doesn't serve
+arbitrary repo files as static content, so clicking would 404. Replaced
+with plain-text file references instead of a broken affordance.
+
+**Verified running, not just written**: `uv add streamlit`, launched with
+`streamlit run dashboard/app.py --server.headless true` on a background
+port, confirmed `HTTP 200` on the root page and `ok` on `/_stcore/health`,
+checked the server log for a traceback (would appear there if the script
+threw during render) -- none. Killed the test server cleanly afterward.
+`make dashboard` added as the run command.
+
+All 43 repo tests + ruff pass (no code logic changed, just the new
+dashboard page). Committed as "Add Streamlit experiment readout page,
+verified running" once pushed.
+
+---
+
+## Session summary (final)
+
+Ten-plus real, tested, pushed commits covering the full PRD critical path
+in one overnight session:
+
+1. Repo scaffold + TLC/NOAA ingestion with real validation
+2. Layered SQL warehouse + metrics definitions + data-quality findings
+3. Unit tests + CI
+4. Fixed a real OOM bug in the warehouse build (bucketed histogram vs.
+   approx_quantile at high group cardinality)
+5. Seasonal-naive forecasting baseline (15.2% WAPE) + 12-fold backtest
+6. LightGBM demand model (12.3% WAPE, beats naive on 10/12 folds)
+7. Discrete-event marketplace simulator core engine, verified on toy
+   scenarios
+8. Simulator calibration against real data -- honest partial match, plus
+   a real modeling bug found and fixed (continuous-queue instability ->
+   warm-up/measure design)
+9. Power/MDE calculator + fixed-horizon A/B with SRM check, null
+   false-positive rate verified against alpha
+10. **The interference study** (flagship result): naive A/B -103% bias
+    (wrong sign), switchback +3% bias
+11. **CUPED**: 26.3% variance reduction, after documenting a failed first
+    covariate attempt and catching a real sign bug via a mismatch that
+    shouldn't have existed
+12. **Decision layer**: PuLP optimizer beats greedy by 4-8% (budget-
+    dependent) and uniform by ~45%, verified against brute force
+13. README rewritten with all real numbers, resume bullets, verified links
+14. Streamlit readout page, verified actually running
+
+**What's NOT built, honestly**: mSPRT/peeking study (PRD's own
+first-thing-to-cut, deprioritized behind the three protected "wow"
+results by design); FastAPI + Docker (lowest priority, PRD calls
+productionization "deliberately light"); Tableau Public (structurally
+out of scope, GUI-only publish flow); the full 2023-2025 data window
+(deliberately still the 3-month pilot, disclosed everywhere); DiD
+congestion-pricing analysis and Chicago generalization (need a wider
+data window).
+
+**Real bugs found and fixed tonight, not hidden**: the warehouse OOM,
+the simulator's unstable continuous-queue model, a broken chart-label
+overflow, a CUPED sign error, and a non-functional Streamlit link -- all
+caught by checking real output against expectations, not by trusting
+code that merely ran without an exception. This pattern is the actual
+throughline of the night, and worth saying so directly rather than just
+listing the wins.
+
+This is a clean, honest stopping point. Ending the loop here rather than
+forcing mSPRT or FastAPI/Docker into the remaining time.
