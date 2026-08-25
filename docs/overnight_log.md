@@ -122,3 +122,48 @@ pushed.
 Next: marketplace simulator (the foundation for the flagship interference
 study) -- this is the biggest, riskiest piece left. Calibration is
 non-negotiable per PRD Section 13.
+
+### Milestone: simulator core engine, verified on toy scenarios (00:07)
+
+Built `ridepulse/simulation/engine.py`: a hand-rolled heapq event loop
+(3 event types: arrival, patience expiry, trip complete), not a DES
+framework (simpy etc.) -- with only 3 event types, a framework would add a
+coroutine control-flow paradigm to learn without saving meaningful code.
+One zone = one queueing system (n drivers, Poisson arrivals, FIFO matching,
+patience-based cancellation, exponential trip durations).
+
+Two modeling simplifications made explicitly, documented in the module
+docstring rather than silently assumed: (1) no cross-zone driver
+repositioning -- a driver stays in-zone after a trip instead of following
+the real drop-off zone; that needs an origin-destination flow matrix per
+zone-hour, which is a real feature for later, not a one-liner; (2) matching
+is "any idle driver in zone," not geospatial "nearest," since there's no
+sub-zone position at this grain.
+
+**This unit deliberately does NOT calibrate against real data yet** (that's
+the next unit, non-negotiable per PRD Section 13 before any experiment
+result gets reported) -- it only proves the engine itself behaves correctly.
+Verified with two toy scenarios plus 6 pytest tests:
+- Oversubscribed (30 riders/hr, 5 drivers, 15-min mean trips): 61%
+  fulfillment, 92% utilization, 1.7min mean wait -- correctly shows real
+  strain.
+- Undersubscribed (10 riders/hr, 20 drivers): 100% fulfillment, 12%
+  utilization, 0min mean wait -- correctly shows slack capacity.
+- Tests cover: zero drivers -> 100% cancellation; heavy oversupply -> zero
+  cancellation and zero wait; scarce vs. plentiful drivers -> fulfillment
+  and utilization move in the correct direction; no negative wait times;
+  same seed is fully reproducible; completed+cancelled accounts for every
+  single arrival (no silent drops in the event loop).
+
+Also noted directly in the `utilization` property: it isn't strictly
+bounded at 1.0 -- a trip matched near the end of the simulation window
+still runs its full duration past the window edge, a real boundary effect
+in any windowed measurement, not a bug. Left visible rather than clamped.
+
+All 20 repo tests + ruff pass. Committed as "Add discrete-event simulator
+core engine, verified on toy scenarios" once pushed.
+
+Next: calibrate against real held-out data (arrival rate from actual
+zone-hour demand, driver count / trip duration / patience tuned so
+simulated wait-time and utilization distributions match real ones) --
+required before any experiment can use this simulator.
