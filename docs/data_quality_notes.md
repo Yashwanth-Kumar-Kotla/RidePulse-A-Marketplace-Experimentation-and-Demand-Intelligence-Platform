@@ -40,6 +40,31 @@ Warn threshold: 0.1% of rows; actual rate is ~50x below that.
 - Required-field nulls (`hvfhs_license_num`, `pickup_datetime`,
   `dropoff_datetime`, `PULocationID`, `DOLocationID`): zero, every pilot month.
 
+## NOAA `TAVG` (average temperature) is 0% populated for this station/period
+
+**Finding:** `TAVG` is empty in 0 of 272 rows of the raw NOAA daily-summary
+CSV (`data/raw/noaa/nyc_weather_daily.csv`) -- not a handful of gaps, every
+single row. `TMAX`, `TMIN`, `PRCP`, `SNOW`, `SNWD`, `AWND` are populated
+normally (a handful of nulls, not systematic). This is a known pattern for
+some GHCN stations: they report daily max/min temperature directly but
+don't compute/report a daily average.
+
+**How it was found:** not caught during ingestion validation (which checks
+completeness of TLC trip fields, not NOAA weather fields) or during the
+LightGBM backtest (`ridepulse/forecasting/lgbm_model.py`, 12.3% pooled
+WAPE) -- LightGBM tolerates an all-missing feature natively (zero
+information gain, so it's simply never split on), which silently masked
+the gap for weeks of use. It surfaced when the FastAPI forecast endpoint
+(`api/main.py`) used a stricter `dropna(subset=FEATURE_COLUMNS)` for
+inference-time row selection, which made every single zone return 404.
+
+**Fix:** removed `temp_avg_c` from `FEATURE_COLUMNS`
+(`ridepulse/forecasting/features.py`) rather than working around it at the
+serving layer -- it never carried any information for the model to use.
+Verified directly, not assumed: re-ran the LightGBM backtest after removing
+it, pooled WAPE unchanged at 12.3%, exactly as expected for a feature that
+was 100% missing the whole time.
+
 ## Fulfillment proxy: an open limitation, not yet resolved
 
 TLC HVFHS trip files contain only *completed, matched* trips -- there is no

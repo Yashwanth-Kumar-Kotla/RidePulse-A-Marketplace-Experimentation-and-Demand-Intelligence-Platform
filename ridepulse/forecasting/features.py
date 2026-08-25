@@ -51,10 +51,16 @@ FEATURE_COLUMNS = [
     "day_of_week",
     "is_weekend",
     "precip_mm",
-    "temp_avg_c",
     "temp_max_c",
     "temp_min_c",
     "wind_avg_ms",
+    # temp_avg_c deliberately excluded: confirmed 0/272 rows populated in the
+    # raw NOAA feed for this station (this GHCN station reports TMAX/TMIN but
+    # not TAVG directly, a common pattern -- not a join bug). Found via the
+    # API's forecast endpoint failing for every zone with an all-NaN feature
+    # after a stricter dropna(); LightGBM's training path had silently
+    # tolerated it (100% missing carries zero information gain, so it never
+    # affected any split) -- see docs/data_quality_notes.md.
 ]
 
 
