@@ -31,6 +31,8 @@ it's a simulator, the true effect is known.
 | Naive rider-randomized A/B | +0.05 min | **-103%** (wrong sign) |
 | Switchback (time-block) | -1.56 min | **+3%** |
 
+![Interference bias: true effect vs naive A/B vs switchback](docs/interference_bias.png)
+
 The naive design doesn't just underestimate a real effect — it misses it
 almost entirely, because randomizing individual riders can't stop a driver
 incentive from leaking into the "control" group through the shared driver
@@ -71,6 +73,8 @@ and greedy-by-demand baselines.
 | Optimizer (LP) | +27.1 trips/hr |
 | Greedy (highest demand first) | +25.9 trips/hr (-4.3%) |
 | Uniform (equal split) | +18.7 trips/hr (-44.8%) |
+
+![Decision layer: optimizer vs greedy vs uniform](docs/decision_layer.png)
 
 Tested across 5 budget levels, not just this one: the optimizer's margin
 over greedy ranges from a tie (at $500 and $900, where there's no room for
@@ -182,6 +186,8 @@ weeks, validated on a 4th held-out week.
 |---|---|---|---|---|
 | 79 (Manhattan) | 2.85 min | 4.94 min (+73%) | 4.90 min | 6.82 min (+39%) |
 | 106 (Brooklyn) | 3.28 min | 3.23 min (-1.5%) | 5.33 min | 7.02 min (+32%) |
+
+![Simulator calibration overlay: real vs simulated wait-time percentiles](docs/simulator_calibration_overlay.png)
 
 **Honest read: partial calibration, not a clean match.** One zone's p50 is
 nearly exact; everything else is systematically overestimated by 32-73%,
