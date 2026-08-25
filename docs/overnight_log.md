@@ -309,3 +309,52 @@ interference study -- naive A/B misses a real effect almost entirely,
 switchback recovers it" once pushed.
 
 Next: CUPED (pre-period covariates, measured variance reduction).
+
+### Milestone: CUPED -- 26.3% variance reduction, real covariate found after a real dead end (00:56)
+
+Full methodology in `docs/cuped_analysis.md` (new) -- summary here.
+
+**First covariate hypothesis failed, kept in the writeup rather than
+silently swapped out**: same-run warm-up-vs-measurement wait time as pre/
+post, hypothesizing queue-state carryover. Measured correlation: 0.027,
+indistinguishable from zero -- makes sense in hindsight (Poisson arrivals
+have independent increments across disjoint windows; zone 106's calibrated
+n_drivers=12 has enough slack that the queue clears within an hour; i.i.d.
+replications have no persistent trait to exploit, which is also *why*
+CUPED normally works in real systems -- persistent day/user heterogeneity).
+
+**Working covariate, grounded in real data, not assumed**: queried the
+warehouse for zone 106's real Wednesday-18:00 trip count across all 13
+Wednesdays in the pilot window -- CV=20.2% (mean 84.9, std 17.1). Used that
+measured 20.2% as a day-level demand multiplier affecting both periods of
+a simulated day (a faithful real-world mechanism: weather/events cause
+real day-to-day demand swings).
+
+**Result (400 reps): correlation 0.513, variance reduction 26.3% (measured
+and theoretical agree almost exactly, as they should for an exact OLS
+identity), implied sample-size savings 26.3%** (same number by direct
+derivation from power.py's n~sigma^2/mde^2, not a separate measurement).
+
+**Caught a real bug via the theoretical/measured mismatch, not by luck**:
+first version of the theoretical formula was `(1-r^2)*100` -- backwards.
+`1-r^2` is the REMAINING variance fraction, the reduction is `r^2`. The
+first run showed theoretical=73.7% vs measured=26.3%, and since these two
+numbers are supposed to match by an exact algebraic identity (not
+approximately, exactly), that gap meant a bug, not noise -- verified the
+measured side by hand before concluding the theoretical formula was wrong,
+fixed it, and added a synthetic test with a hand-computable known
+reduction (Y=0.8X+noise, r=0.8, expected reduction=64%) specifically so
+this sign error can't silently reappear.
+
+4 new tests (hand-computed synthetic reduction, never-increases-variance,
+near-zero-correlation-gives-near-zero-reduction, sample-size-savings
+equals variance-reduction by construction). All 38 repo tests + ruff pass.
+Committed as "Add CUPED analysis -- 26.3% variance reduction, real
+covariate found after a documented dead end" once pushed.
+
+Honest framing kept in the doc: 26.3% is a real, useful number, not the
+90%+ sometimes seen in production systems with rich user-level history --
+this simulator has no persistent user identities for a richer covariate.
+
+Next: mSPRT + peeking study if time remains (simplify freely, it's the
+PRD's own first-thing-to-cut), then decision layer, then Streamlit.
