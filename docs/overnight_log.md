@@ -3,6 +3,27 @@
 Running log of the self-paced overnight build session. Newest entries on top.
 See PRD.md for full spec, README.md for current status summary.
 
+## Resume bullets (running draft, real numbers only, Google XYZ format)
+
+1. Reduced demand-forecast error by 19% (WAPE 12.3% vs. 15.2% seasonal-naive
+   baseline), as measured by a 12-fold rolling-origin backtest, by
+   engineering a LightGBM pipeline with lag/calendar/weather features over
+   59M real NYC rideshare trips.
+2. Uncovered a -103% measurement bias in naive A/B testing under marketplace
+   interference, as measured by comparing naive rider-randomized and
+   switchback estimators against known simulator ground truth, by building
+   a calibrated discrete-event marketplace simulator and an interference
+   study from scratch.
+3. Cut required experiment sample size by 26.3%, as measured by CUPED
+   variance reduction using a real day-level demand covariate (20.2% CV),
+   by implementing the CUPED estimator and rejecting an initial covariate
+   that failed validation at near-zero correlation.
+4. Improved incentive-budget efficiency by up to 8% over a greedy heuristic
+   and 45% over uniform allocation, as measured by unfulfilled-demand
+   reduction in a calibrated marketplace simulator, by building a PuLP
+   budget allocator over simulation-measured uplift curves, verified
+   against brute-force search.
+
 ---
 
 ## 2026-08-24 (session start)
@@ -412,3 +433,28 @@ uniform by ~45%, verified against brute force" once pushed.
 bias chart, CUPED savings, prediction-to-decision optimizer.
 
 Next: mSPRT + peeking study if time remains, then Streamlit readout app.
+
+### Milestone: README rewritten with real numbers, all links verified (01:23)
+
+Full rewrite in the PRD's target order (Problem/Why implicit in the intro,
+Architecture, Data window, Data audit, Metrics, Forecasting, Simulator
+calibration, Experiments, Optimization, Limitations, Future work), leading
+with the three protected "wow" results in the first screen as PRD Section
+10.2 asks for. Every number is real and traceable to tonight's actual runs
+-- no placeholders, and every honest caveat kept in (partial simulator
+calibration, the naive A/B sign flip, CUPED's failed first covariate, the
+decision layer's budget-dependent margin). Resume-ready bullets (Google
+XYZ format) added to both the README and the top of this log.
+
+Verified rather than assumed: every doc link in the new README
+(PRD.md, docs/overnight_log.md, docs/interference_study.md,
+docs/cuped_analysis.md, docs/decision_layer.md, docs/data_quality_notes.md,
+docs/metrics_definitions.md, docs/simulator_calibration.md,
+configs/data.yaml) checked to actually exist with `[ -f ... ]` before
+committing -- all 9 present. Full test suite re-run to confirm doc-only
+changes didn't break anything (43 passed).
+
+Committed as "Rewrite README with real measured numbers and resume-ready
+bullets" once pushed.
+
+Next: Streamlit readout app.
