@@ -36,6 +36,15 @@ class SimParams:
     mean_trip_minutes: float = 15.0
     mean_patience_minutes: float = 5.0
     seed: int = 0
+    # Driver-incentive treatment (ridepulse/experiments/interference.py): each
+    # arriving rider is independently tagged treatment w.p. treatment_prob;
+    # a treatment-tagged rider's matched trip runs treatment_speedup x as
+    # long (< 1 = faster). This models an incentivized driver finishing
+    # sooner and returning to the SHARED pool sooner -- benefiting whichever
+    # rider is next in line regardless of THEIR tag, which is exactly the
+    # interference mechanism the study exists to demonstrate.
+    treatment_prob: float = 0.0
+    treatment_speedup: float = 1.0
 
 
 @dataclass
@@ -48,6 +57,7 @@ class SimResult:
     # same order as wait_times_min -- lets a caller discard an initial warm-up window rather
     # than measuring from a cold, fully-idle driver pool (see calibration.py for why that
     # matters: measuring from t=0 systematically understates real wait times).
+    treatment_flags: list[bool]  # whether each matched rider was treatment-tagged, same order
     driver_busy_minutes: float
     n_drivers: int
     duration_hours: float
@@ -78,13 +88,16 @@ def run_simulation(params: SimParams) -> SimResult:
 
     # Pre-generate the whole arrival process up front (Poisson via exponential
     # inter-arrival times) -- simpler than generating arrivals reactively,
-    # and the arrival process doesn't depend on simulator state.
+    # and the arrival process doesn't depend on simulator state. Each rider
+    # is tagged treatment/control at generation time too, for the same reason.
     t, rider_id = 0.0, 0
+    is_treatment: dict[int, bool] = {}
     while True:
         t += rng.exponential(60.0 / params.arrival_rate_per_hour)
         if t >= params.duration_hours * 60:
             break
         schedule(t, ARRIVAL, {"rider_id": rider_id})
+        is_treatment[rider_id] = rng.random() < params.treatment_prob
         rider_id += 1
     total_arrivals = rider_id
 
@@ -93,14 +106,19 @@ def run_simulation(params: SimParams) -> SimResult:
     completed = cancelled = 0
     wait_times: list[float] = []
     match_times: list[float] = []
+    treatment_flags: list[bool] = []
     busy_minutes = 0.0
 
-    def match(time: float, arrival_time: float) -> None:
+    def match(time: float, arrival_time: float, rider_id: int) -> None:
         nonlocal idle_drivers, completed, busy_minutes
         idle_drivers -= 1
         wait_times.append(time - arrival_time)
         match_times.append(time)
+        treated = is_treatment[rider_id]
+        treatment_flags.append(treated)
         trip_minutes = max(1.0, rng.exponential(params.mean_trip_minutes))
+        if treated:
+            trip_minutes *= params.treatment_speedup
         busy_minutes += trip_minutes
         completed += 1
         schedule(time + trip_minutes, TRIP_COMPLETE, {})
@@ -111,7 +129,7 @@ def run_simulation(params: SimParams) -> SimResult:
         if etype == ARRIVAL:
             rid = payload["rider_id"]
             if idle_drivers > 0:
-                match(time, arrival_time=time)  # matched immediately, wait = 0
+                match(time, arrival_time=time, rider_id=rid)  # matched immediately, wait = 0
             else:
                 waiting[rid] = time
                 patience = rng.exponential(params.mean_patience_minutes)
@@ -128,7 +146,7 @@ def run_simulation(params: SimParams) -> SimResult:
             if waiting:
                 rid = min(waiting, key=waiting.get)  # FIFO: earliest arrival first
                 arrival_time = waiting.pop(rid)
-                match(time, arrival_time)
+                match(time, arrival_time, rider_id=rid)
 
     return SimResult(
         total_arrivals=total_arrivals,
@@ -136,6 +154,7 @@ def run_simulation(params: SimParams) -> SimResult:
         cancelled_trips=cancelled,
         wait_times_min=wait_times,
         match_times_min=match_times,
+        treatment_flags=treatment_flags,
         driver_busy_minutes=busy_minutes,
         n_drivers=params.n_drivers,
         duration_hours=params.duration_hours,

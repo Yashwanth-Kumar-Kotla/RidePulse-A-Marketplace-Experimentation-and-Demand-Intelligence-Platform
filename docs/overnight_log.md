@@ -257,3 +257,55 @@ Next: the interference study -- naive rider-randomized A/B vs. switchback
 on the same simulated driver-incentive intervention, bias measured against
 known simulator ground truth. The single most important deliverable in
 the project (PRD Section 11 #1).
+
+### Milestone: THE INTERFERENCE STUDY -- flagship result done (00:44)
+
+Full methodology and result in `docs/interference_study.md` (new) and
+`docs/interference_bias.png` (new) -- summary here. This was the single
+most important deliverable in the whole project (PRD Section 11 #1) and
+the result came out clean and striking, not forced.
+
+Extended `ridepulse/simulation/engine.py` with a small, real interference
+mechanism: a treatment-tagged rider's matched trip runs faster
+(`treatment_speedup < 1`, modeling an incentivized driver hustling), which
+returns that driver to the SHARED pool sooner -- benefiting whichever
+rider is matched next regardless of their own tag. Built
+`ridepulse/experiments/interference.py` with three estimators: true effect
+(clean all-treatment vs. all-control worlds, unbiased by construction),
+naive rider-randomized A/B (one shared, contaminated pool), switchback
+(independent all-or-nothing blocks). Reused the zone 106 calibration
+params (`n_drivers=12`, `patience=5min`, real `arrival_rate=89.7/hr`,
+`avg_trip=16.55min`) so this is grounded, not arbitrary.
+
+**Result (300 reps, real, measured):**
+
+| Estimator | Effect | Bias |
+|---|---|---|
+| True effect | -1.52 min | -- |
+| Naive A/B | +0.05 min | **-103%** |
+| Switchback | -1.56 min | **+3%** |
+
+The naive design doesn't just understate the effect, it misses it almost
+entirely (and gets the sign wrong in this run). Switchback recovers it to
+within 3%. Sanity-checked before trusting this: (1) true effect is
+non-zero and in the expected direction by construction, verified directly;
+(2) result holds at 100 and 300 reps and against zone 79's params too, not
+a one-off; (3) the null case (`treatment_speedup=1.0`, no real effect) --
+all three estimators correctly land near zero, confirming switchback isn't
+just "always guessing big."
+
+Also fixed a real plotting bug along the way (not a data problem): initial
+bar-chart annotation offsets were fixed constants that didn't scale to
+this data's range (one bar ~0.05, others ~-1.5), pushing text completely
+outside the visible axes. Fixed by scaling label offsets to the actual
+data range instead of a hardcoded number -- verified by rendering and
+looking at the actual image before calling it done, not just checking the
+script ran without error.
+
+5 new tests (true effect direction/magnitude, naive biased toward zero,
+switchback closer than naive, null case near-zero for all three,
+determinism). All 34 repo tests + ruff pass. Committed as "Add the
+interference study -- naive A/B misses a real effect almost entirely,
+switchback recovers it" once pushed.
+
+Next: CUPED (pre-period covariates, measured variance reduction).
