@@ -4,6 +4,15 @@ Schema verified live against fhvhv_tripdata_2024-01.parquet on 2026-08-20
 (24 columns, 19,663,930 rows). One combined file per month covers all
 high-volume FHV bases (Uber=HV0003, Lyft=HV0005, Via=HV0004, Juno=HV0002),
 distinguished by hvfhs_license_num -- there is no per-platform URL.
+
+`PULocationID`/`DOLocationID` are INTEGER in every month checked EXCEPT
+2023-01, where they're BIGINT -- found when widening to the full 2023-2025
+window and validating all 30 months, not assumed. Verified this doesn't
+actually break anything: DuckDB's read_parquet() auto-promotes to BIGINT
+across a glob spanning both file schemas (tested directly against a
+2023-01 + 2024-01 combined read), so it's a harmless TLC-side type
+annotation change, not a real incompatibility -- treated as such below
+rather than hard-failing ingestion over it.
 """
 
 from __future__ import annotations
@@ -48,6 +57,11 @@ EXPECTED_SCHEMA = {
     "wav_request_flag": "VARCHAR",
     "wav_match_flag": "VARCHAR",
 }
+
+# Safe widenings DuckDB itself promotes across a glob without loss -- not a
+# blanket "ignore type mismatches" escape hatch, just the one observed,
+# verified-harmless case (see module docstring).
+COMPATIBLE_TYPE_WIDENINGS = {"INTEGER": {"BIGINT"}}
 
 # Columns that must never be null -- a request with no pickup location or no
 # fare timestamp isn't a usable trip record.
@@ -140,8 +154,11 @@ def validate_file(path: Path, month: str) -> ValidationResult:
     schema_diff = {}
     for col, expected_type in EXPECTED_SCHEMA.items():
         got = actual_schema.get(col)
-        if got != expected_type:
-            schema_diff[col] = {"expected": expected_type, "got": got}
+        if got == expected_type:
+            continue
+        if got in COMPATIBLE_TYPE_WIDENINGS.get(expected_type, set()):
+            continue
+        schema_diff[col] = {"expected": expected_type, "got": got}
     schema_ok = not schema_diff
 
     row_count = con.execute(f"SELECT count(*) FROM read_parquet('{path}')").fetchone()[0]
