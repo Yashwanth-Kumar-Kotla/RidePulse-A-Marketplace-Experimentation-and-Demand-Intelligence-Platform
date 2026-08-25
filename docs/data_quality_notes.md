@@ -1,14 +1,20 @@
 # Data Quality Notes
 
 Findings from ingestion validation (`ridepulse/ingestion/tlc.py::validate_file`,
-run via `uv run python -m ridepulse.ingestion.cli validate --pilot`) against
-the pilot window (2024-01, 2024-06, 2024-09, ~59.0M rows combined).
+run via `uv run python -m ridepulse.ingestion.cli validate --pilot` /
+`--full`). Original findings below were from the 3-month pilot window
+(2024-01, 2024-06, 2024-09, ~59.0M rows); **re-verified against the full
+2023-2025 window (30 months, 592,955,659 rows)** once it was built --
+noted inline where the full-window numbers refine or confirm the original.
 
-## `request_datetime` occasionally lands after `pickup_datetime` (~0.95% of rows)
+## `request_datetime` occasionally lands after `pickup_datetime` (~0.95%-1.0% of rows)
 
 **Finding:** `request_datetime > pickup_datetime` for ~184-188K rows/month out
-of ~19-20M (0.94-0.96%). `pickup_datetime > dropoff_datetime` never occurs (0
-rows in every pilot month) -- the anomaly is isolated to the request leg.
+of ~19-20M (0.94-0.96%) in the original pilot-window check.
+**Re-verified across the full 30-month window: 0.995% of all 592.96M rows**
+(range 0.82%-1.20% across individual months) -- consistent with the pilot
+finding, not a pilot-specific artifact. `pickup_datetime > dropoff_datetime`
+never occurs -- the anomaly is isolated to the request leg.
 
 **Root cause (inferred, not officially confirmed by TLC docs):** among the
 violating rows, 51% have `request_datetime` falling exactly on a 15-minute
@@ -27,11 +33,28 @@ reliable for every other metric on these rows. Ingestion validation treats
 this as a WARN (rate reported, logged) below a 2% threshold, not a hard FAIL,
 since it's a bounded, understood, and filterable quirk rather than corruption.
 
-## Duplicate rows: negligible (<0.0003%)
+## Duplicate rows: negligible (<0.001%)
 
 38-44 exact-duplicate rows per month (same license/base/pickup/dropoff/zone
-tuple) out of ~19-20M. Filtered via `SELECT DISTINCT` at the staging layer.
-Warn threshold: 0.1% of rows; actual rate is ~50x below that.
+tuple) out of ~19-20M in the pilot-window check. **Re-verified across the
+full window: 0.0009% of all 592.96M rows** -- still negligible, still
+~100x below the 0.1% warn threshold. Filtered via `SELECT DISTINCT` at the
+staging layer.
+
+## Also found while widening to the full window: `PULocationID`/`DOLocationID` type drift (2023-01 only)
+
+**Finding:** every month's `PULocationID`/`DOLocationID` columns are
+`INTEGER` except 2023-01, which is `BIGINT`. Caught by the same schema
+check that validates every other month, not assumed away.
+
+**Verified harmless before relaxing the check:** confirmed directly that
+DuckDB's `read_parquet()` auto-promotes to `BIGINT` across a glob spanning
+both schemas without data loss -- a TLC-side type annotation change, not a
+real incompatibility. Handled with a narrow, documented compatible-type
+allowance (`INTEGER` -> `BIGINT` only) in
+`ridepulse/ingestion/tlc.py::COMPATIBLE_TYPE_WIDENINGS`, not a blanket
+loosening of schema validation -- an unrelated wrong type still fails (see
+`tests/test_tlc_validation.py`).
 
 ## No violations found
 
