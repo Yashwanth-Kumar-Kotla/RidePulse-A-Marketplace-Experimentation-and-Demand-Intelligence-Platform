@@ -39,6 +39,12 @@ def test_same_seed_is_deterministic():
     assert a.wait_times_min == b.wait_times_min
 
 
+def test_match_times_align_with_wait_times():
+    result = run_simulation(SimParams(arrival_rate_per_hour=20, n_drivers=5, duration_hours=10, seed=5))
+    assert len(result.match_times_min) == len(result.wait_times_min) == result.completed_trips
+    assert all(t >= 0 for t in result.match_times_min)
+
+
 def test_completed_plus_cancelled_accounts_for_every_arrival():
     result = run_simulation(SimParams(arrival_rate_per_hour=40, n_drivers=6, duration_hours=24, seed=9))
     assert result.completed_trips + result.cancelled_trips == result.total_arrivals

@@ -167,3 +167,64 @@ Next: calibrate against real held-out data (arrival rate from actual
 zone-hour demand, driver count / trip duration / patience tuned so
 simulated wait-time and utilization distributions match real ones) --
 required before any experiment can use this simulator.
+
+### Milestone: simulator calibration -- honest partial match, real bug found and fixed (00:24)
+
+Full methodology and result in `docs/simulator_calibration.md` (new) and
+`docs/simulator_calibration_overlay.png` (new) -- summary here.
+
+Calibrated `n_drivers` / `mean_patience_minutes` against real pooled
+wait-time p50/p90 for two zones (79 = Manhattan high-volume, 106 =
+Brooklyn/Gowanus medium-volume) at a real recurring rush-hour slice
+(Wednesday 18:00), fit on 3 weeks of January, validated out-of-sample on a
+4th held-out week. Utilization is NOT independently validated (no ground
+truth exists in HVFHS data -- same reason KPI #4 in metrics_definitions.md
+is marked "Planned"), reported as simulator output only, per PRD Section
+7.4's explicit allowance to "calibrate on some quantities, hold out
+others, and say which."
+
+**Found and fixed a real modeling bug along the way**, not just tuned
+parameters: the first version simulated many continuous hours at a
+constant rate, which models an unstable queue that builds up without bound
+whenever demand is even slightly above capacity -- verified directly
+(simulated utilization pinned at ~1.0, wait inflated far above real at
+every driver count tried). A real rush hour resets daily; it isn't a
+continuous overload. Fixed with standard DES practice: 1-hour warm-up,
+then measure only matches in the following hour -- required adding
+`match_times_min` to `SimResult` (engine.py) so wait times could be
+filtered to the measurement window.
+
+**Result (real, measured, reported honestly -- this is a partial match,
+not a clean one):**
+
+| Zone | Real p50 (holdout) | Sim p50 | Real p90 (holdout) | Sim p90 |
+|---|---|---|---|---|
+| 79 | 2.85 min | 4.94 min (+73%) | 4.90 min | 6.82 min (+39%) |
+| 106 | 3.28 min | 3.23 min (-1.5%) | 5.33 min | 7.02 min (+32%) |
+
+Zone 106's p50 is a near-exact match. Everything else is systematically
+*overestimated* by 32-73%. Right order of magnitude and right direction
+(busier zone -> more wait), wrong precision. Most likely cause, and it's a
+limitation already disclosed in engine.py's docstring BEFORE calibration
+started: no cross-zone driver repositioning -- the simulator can't draw on
+drivers flowing in from neighboring zones during a surge, so it predicts
+more strain than the real (more elastic) system shows. This is a
+hypothesis consistent with the error's direction, not independently
+confirmed.
+
+**What this does and doesn't license**: usable for relative,
+within-simulator comparisons (e.g. the interference study -- naive A/B vs.
+switchback, both measured against the same simulator's own ground truth)
+since that doesn't depend on matching reality's absolute wait level. NOT
+validated well enough to claim "real riders wait N minutes" -- stated
+explicitly rather than overselling a 30-70%-off number as calibrated truth.
+
+Verified: 2 new calibration tests (pooling across replications behaves
+sanely; grid_search's argmin is verified correct by independently
+re-simulating every grid cell and confirming none beats the returned
+error) + 1 new engine test (match_times_min aligns with wait_times_min).
+All 23 repo tests + ruff pass. Committed as "Calibrate simulator against
+real data -- partial match, systematic wait overestimation" once pushed.
+
+Next: experimentation engine, starting with power/MDE and fixed-horizon
+A/B, building toward the interference/switchback flagship result.

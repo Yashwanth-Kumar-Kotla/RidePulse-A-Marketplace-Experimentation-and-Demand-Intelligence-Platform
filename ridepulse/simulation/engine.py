@@ -44,6 +44,10 @@ class SimResult:
     completed_trips: int
     cancelled_trips: int
     wait_times_min: list[float]  # request -> match wait, completed trips only
+    match_times_min: list[float]  # sim time (minutes) each of the above matches happened,
+    # same order as wait_times_min -- lets a caller discard an initial warm-up window rather
+    # than measuring from a cold, fully-idle driver pool (see calibration.py for why that
+    # matters: measuring from t=0 systematically understates real wait times).
     driver_busy_minutes: float
     n_drivers: int
     duration_hours: float
@@ -88,12 +92,14 @@ def run_simulation(params: SimParams) -> SimResult:
     waiting: dict[int, float] = {}  # rider_id -> arrival_time, riders not yet matched
     completed = cancelled = 0
     wait_times: list[float] = []
+    match_times: list[float] = []
     busy_minutes = 0.0
 
     def match(time: float, arrival_time: float) -> None:
         nonlocal idle_drivers, completed, busy_minutes
         idle_drivers -= 1
         wait_times.append(time - arrival_time)
+        match_times.append(time)
         trip_minutes = max(1.0, rng.exponential(params.mean_trip_minutes))
         busy_minutes += trip_minutes
         completed += 1
@@ -129,6 +135,7 @@ def run_simulation(params: SimParams) -> SimResult:
         completed_trips=completed,
         cancelled_trips=cancelled,
         wait_times_min=wait_times,
+        match_times_min=match_times,
         driver_busy_minutes=busy_minutes,
         n_drivers=params.n_drivers,
         duration_hours=params.duration_hours,
