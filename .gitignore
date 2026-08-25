@@ -8,6 +8,9 @@ data/raw/
 data/*.duckdb
 data/*.duckdb.wal
 data/duckdb_tmp/
+data/mlflow.db
+mlruns/
+mlartifacts/
 
 .DS_Store
 .env

@@ -81,3 +81,44 @@ backtest harness" once pushed.
 
 Next: one real model (LightGBM) against this same harness, honestly
 reported whether it beats 15.2% WAPE or not.
+
+### Milestone: LightGBM demand model, backtested on the same harness (00:01)
+
+Built `ridepulse/forecasting/features.py` (lag features at t-1h/t-24h/t-168h,
+computed within (zone, month) groups so they can't leak across the
+non-contiguous pilot-month gap -- same reasoning as the seasonal-naive
+baseline, tested the same way; calendar features; weather joined from
+`stg_weather`) and `ridepulse/forecasting/lgbm_model.py`, which reuses
+`make_folds`/`wape` from `backtest.py` directly rather than reimplementing
+the fold logic, so the WAPE numbers are apples-to-apples comparable.
+
+Per-fold training uses every row strictly before that fold's test day,
+across ALL earlier pilot months (falls out naturally from filtering on
+`pickup_hour < day_start`, since month timestamps compare correctly) --
+disclosed consequence: January folds train on much less data (<=27 days)
+than September folds (Jan + Jun + up to 26 days of Sep), since January is
+the first pilot month.
+
+**Result (real, measured): pooled WAPE = 12.3%**, vs. the seasonal-naive
+baseline's 15.2% -- a ~19% relative improvement. Being precise rather than
+overselling this: LightGBM beats naive on 10 of 12 folds, ties on 1
+(2024-01-30, both 12.6%), and is narrowly WORSE on 1 (2024-01-29: LightGBM
+13.9% vs. naive 12.9%) -- plausibly the fold with the least training history
+(only 28 days available). Full per-fold numbers in git history / rerun
+`uv run python -m ridepulse.forecasting.lgbm_model`.
+
+Hit one real snag along the way: MLflow 3.x's filesystem tracking store
+(`./mlruns`) is now in "maintenance mode" and refuses to initialize --
+switched to the sqlite backend it recommends (`sqlite:///data/mlflow.db`,
+gitignored). Runs are logged (fold_id, train_rows, hyperparams, wape) under
+experiment "ridepulse-forecasting".
+
+Verified: 3 new unit tests (lag values match hand-computed shifts, lags
+don't leak across the month gap, calendar features correct for a known
+Monday/Saturday). All 14 repo tests + ruff pass, no warnings. Committed as
+"Add LightGBM demand model, beats seasonal-naive 12.3% vs 15.2% WAPE" once
+pushed.
+
+Next: marketplace simulator (the foundation for the flagship interference
+study) -- this is the biggest, riskiest piece left. Calibration is
+non-negotiable per PRD Section 13.

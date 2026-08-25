@@ -42,7 +42,8 @@ def make_folds(panel: pd.DataFrame) -> list[tuple[str, pd.Timestamp, pd.Timestam
         last_days = sorted(month_df["pickup_hour"].dt.normalize().unique())[-FOLDS_PER_MONTH:]
         for day in last_days:
             fold_id = f"{pd.Timestamp(month).strftime('%Y-%m')}_{pd.Timestamp(day).strftime('%d')}"
-            folds.append((fold_id, month, pd.Timestamp(day), pd.Timestamp(day) + pd.Timedelta(days=1)))
+            day_start = pd.Timestamp(day)
+            folds.append((fold_id, month, day_start, day_start + pd.DateOffset(days=1)))
     return folds
 
 
