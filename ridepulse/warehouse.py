@@ -36,7 +36,7 @@ def build(duckdb_path: str | None = None) -> None:
             con.execute(sql_file.read_text())
 
     tables = con.execute("SHOW ALL TABLES").fetchdf()
-    logger.info("warehouse built: %d relations\n%s", len(tables), tables[["name", "column_count"]])
+    logger.info("warehouse built: %d relations\n%s", len(tables), tables[["name"]])
     con.close()
 
 
